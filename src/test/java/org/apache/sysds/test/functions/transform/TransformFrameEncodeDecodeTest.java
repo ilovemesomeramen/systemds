@@ -41,11 +41,26 @@ public class TransformFrameEncodeDecodeTest extends AutomatedTestBase
 	private final static String TEST_CLASS_DIR = TEST_DIR + TransformFrameEncodeDecodeTest.class.getSimpleName() + "/";
 	
 	//dataset and transform tasks without missing values
-	private final static String DATASET1 = "homes3/homes.csv";
-	private final static String SPEC1    = "homes3/homes.tfspec_recode.json"; 
-	private final static String SPEC1b   = "homes3/homes.tfspec_recode2.json"; 
-	private final static String SPEC2    = "homes3/homes.tfspec_dummy.json";
-	private final static String SPEC2b   = "homes3/homes.tfspec_dummy2.json";
+
+	//private final static String DATASET1 = "data/nyc-ticket/Parking_Violations_Issued_-_Fiscal_Year_2014__August_2013___June_2014_.csv";
+	//private final static String SPEC1 	 = "data/nyc-ticket/spec/2015.tfspec_recode.json";
+
+	private final static String SPEC1 	= "data/nyc-ticket/spec/2015.tfspec_recode_small.json";
+
+	private final static String DATASET1 	= "data/nyc-ticket/10_small_no_space.csv";  // Works with spark
+	private final static String SPEC1b 		= "data/nyc-ticket/spec/2015.tfspec_recode2_no_space_small.json";
+
+	//private final static String DATASET1 	= "data/nyc-ticket/10_small_space.csv";     // Does not work with spark
+	//private final static String SPEC1b 	= "data/nyc-ticket/spec/2015.tfspec_recode2_space_small.json";
+
+
+	/*
+	private final static String DATASET1 	= "homes3/homes.csv";
+	private final static String SPEC1 		= "homes3/homes.tfspec_recode.json";
+	private final static String SPEC1b 		= "homes3/homes.tfspec_recode2.json";
+	 */
+	private final static String SPEC2 		= "homes3/homes.tfspec_dummy.json";
+	private final static String SPEC2b 		= "homes3/homes.tfspec_dummy2.json";
 	
 	public enum TransformType {
 		RECODE,

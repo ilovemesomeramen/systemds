@@ -36,23 +36,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.security.InvalidParameterException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.StringTokenizer;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -76,6 +68,9 @@ import org.apache.sysds.runtime.matrix.data.MatrixValue.CellIndex;
 import org.apache.sysds.runtime.meta.MatrixCharacteristics;
 import org.apache.sysds.runtime.util.DataConverter;
 import org.apache.sysds.runtime.util.UtilFunctions;
+import org.apache.wink.json4j.JSONArray;
+import org.apache.wink.json4j.JSONException;
+import org.apache.wink.json4j.JSONObject;
 import org.junit.Assert;
 
 
@@ -1698,26 +1693,43 @@ public class TestUtils
 	 *     Generates a random FrameBlock with given parameters.
 	 * </p>
 	 */
-	public static FrameBlock generateRandomFrameBlock(int rows, int cols, ValueType[] schema, Random random){
+	public static FrameBlock generateRandomFrameBlock(int rows, int cols, ValueType[] schema, double sparsity, Random random){
 		String[] names = new String[cols];
 		for(int i = 0; i < cols; i++)
 			names[i] = schema[i].toString();
 		FrameBlock frameBlock = new FrameBlock(schema, names);
 		frameBlock.ensureAllocatedColumns(rows);
 		for(int row = 0; row < rows; row++)
-			for(int col = 0; col < cols; col++)
+			for(int col = 0; col < cols; col++){
+				if (random.nextDouble() > sparsity)
+					continue;
 				frameBlock.set(row, col, generateRandomValueFromValueType(schema[col], random));
+			}
+
 		return frameBlock;
 	}
 
+	public static FrameBlock generateRandomFrameBlock(int rows, int cols, ValueType[] schema, Random random){
+		return generateRandomFrameBlock(rows, cols, schema, 1.0, random);
+	}
+
 	public static FrameBlock generateRandomFrameBlock(int rows, int cols, ValueType[] schema, long seed){
+		return generateRandomFrameBlock(rows, cols, schema, 1.0, seed);
+	}
+
+	public static FrameBlock generateRandomFrameBlock(int rows, int cols, ValueType[] schema, double sparsity, long seed){
 		Random random = (seed == -1) ? TestUtils.random : new Random(seed);
-		return generateRandomFrameBlock(rows, cols, schema, random);
+		return generateRandomFrameBlock(rows, cols, schema, sparsity, random);
 	}
 
 	public static FrameBlock generateRandomFrameBlock(int rows, int cols, long seed){
 		ValueType[] schema = generateRandomSchema(cols, seed);
-		return generateRandomFrameBlock(rows, cols,schema ,seed);
+		return generateRandomFrameBlock(rows, cols, schema, 1.0, seed);
+	}
+
+	public static FrameBlock generateRandomFrameBlock(int rows, int cols, double sparsity, long seed){
+		ValueType[] schema = generateRandomSchema(cols, seed);
+		return generateRandomFrameBlock(rows, cols, schema, sparsity, seed);
 	}
 
 	/**
@@ -3033,4 +3045,98 @@ public class TestUtils
 		
 		return y;
 	}
+
+
+	public static String generateSpecJSON(Integer[] rcIDs, Integer[] haIDs, Integer k, Integer[] dcIDs,
+										  Integer[][] binIDs, Integer[] oIDs, Integer[][] mvIDs, List<String> colnames)
+			throws JSONException {
+		JSONObject spec = new JSONObject();
+		if(rcIDs != null){
+			spec.put("recode", new JSONArray(Arrays.asList(rcIDs)));
+		}
+		if(haIDs != null || k != null){
+			if(haIDs == null || k == null)
+				throw new InvalidParameterException("Can't have haIDs without K");
+			spec.put("hash", haIDs);
+			spec.put("K", k);
+		}
+		if(dcIDs != null){
+			spec.put("dummycode", dcIDs);
+		}
+		if(binIDs != null){
+			JSONArray arr = new JSONArray();
+			for(Integer[] entry : binIDs){
+				JSONObject obj = new JSONObject();
+				String method;
+				obj.put("id", entry[0]);
+				switch (entry[1]){
+					case 0:
+						method = "equi-width";
+						break;
+					default:
+						throw new NotImplementedException("Not implemented method id");
+				}
+				obj.put("method", method);
+				obj.put("numbins", entry[2]);
+				arr.add(obj);
+			}
+			spec.put("bin", arr);
+		}
+		if(oIDs != null){
+			spec.put("omit", oIDs);
+		}
+		if(mvIDs != null){
+			JSONArray arr = new JSONArray();
+			for(Integer[] entry : mvIDs){
+				JSONObject obj = new JSONObject();
+				String method;
+				obj.put("id", entry[0]);
+				switch (entry[1]){
+					case 0:
+						method = "global_mode";
+						break;
+					case 1:
+						method = "global_mean";
+						break;
+					case 2:
+						method = "constant";
+						break;
+					default:
+						throw new NotImplementedException("Not implemented method id");
+				}
+				obj.put("method", method);
+				if (entry[1] == 2){
+					obj.put("value", entry[2]);
+				}
+				arr.add(obj);
+			}
+			spec.put("impute", arr);
+		}
+		if(colnames == null){
+			spec.put("ids", true);
+		} else {
+			Iterator<String> keys = spec.keys();
+			while (keys.hasNext()){
+				String key = keys.next();
+				Object obj = spec.get(key);
+				if(obj instanceof JSONArray){
+					JSONArray new_arr = new JSONArray();
+					for(Object entry: (JSONArray)obj){
+						if(entry instanceof Integer){
+							new_arr.add(colnames.get((Integer) entry - 1));
+						}else if (entry instanceof JSONObject){
+							((JSONObject)entry).put("name", colnames.get((Integer) ((JSONObject)entry).get("id") - 1));
+							((JSONObject)entry).remove("id");
+							new_arr.add(entry);
+						} else {
+							new_arr.add(entry);
+						}
+					}
+					spec.put(key,new_arr);
+				}
+			}
+		}
+		return spec.toString();
+	}
+
 }

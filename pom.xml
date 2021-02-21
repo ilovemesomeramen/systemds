@@ -54,6 +54,7 @@
 		<automatedtestbase.outputbuffering>false</automatedtestbase.outputbuffering>
 		<argLine>-Xms4g -Xmx4g -Xmn400m</argLine>
 		<enableStats>false</enableStats>
+		<jmh.version>1.27</jmh.version>
 	</properties>
 
 	<repositories>
@@ -754,6 +755,20 @@
 	</profiles>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<version>${jmh.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-generator-annprocess</artifactId>
+			<version>${jmh.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+
 		<dependency>
 			<groupId>org.jcuda</groupId>
 			<artifactId>jcuda</artifactId>
