@@ -145,7 +145,7 @@ public class ColumnEncoderSerializationTest extends AutomatedTestBase
 
 	}
 
-	private MultiColumnEncoder serializeDeserialize(MultiColumnEncoder encoderIn) {
+	private static MultiColumnEncoder serializeDeserialize(MultiColumnEncoder encoderIn) {
 		try {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			ObjectOutputStream oos = new ObjectOutputStream(bos);
